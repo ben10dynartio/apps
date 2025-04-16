@@ -130,7 +130,7 @@ def process_lua_data(df, selected_property):
 
 if __name__ == "__main__":
     # request basic properties
-    print("-- Requesting basic properties")
+    print(">> Requesting basic properties")
     basic_properties = [f for f in wikidata_properties if (not f[2]) and (f[3] != list)] # Exclude dated and list attribute
     q = build_basic_query(basic_properties)
     result = restructure_json(fetch_wikidata(q))
@@ -140,11 +140,11 @@ if __name__ == "__main__":
     df = df.groupby(["codeiso2"]).first().reset_index() # Group by code
 
     # request list attribute
-    print("-- Requesting list properties")
+    print(">> Requesting list properties")
     list_properties = [f for f in wikidata_properties if f[3] == list]
     dfl = {}
     for property in list_properties:
-        print("---", property[0])
+        print("  >>", property[0])
         q = build_list_query(property)
         result = restructure_json(fetch_wikidata(q))
         dfl[property[0]] : pd.DataFrame = pd.DataFrame(result).fillna("")
@@ -152,7 +152,7 @@ if __name__ == "__main__":
         if property[4]: #if it has label
             dfl[property[0]][property[0]] = dfl[property[0]][property[0] + "Label"]
 
-    print("-- Clear list properties")
+    print(">> Clear list properties")
     # Clean continent name
     dfl["continent"]["continent"] = np.where(dfl["continent"]["continentLabel"].isin(['Insular Oceania', 'Australian continent']),
                                                   "Oceania", dfl["continent"]["continentLabel"])
@@ -180,20 +180,19 @@ if __name__ == "__main__":
         conversion_list_dict[property[0]] = {r["codeiso2"]:r[property[0]] for r in dfl[property[0]].to_dict(orient='records')}
 
     ## Request date property
-    print("-- Requesting date properties")
+    print(">> Requesting date properties")
     date_properties = [f for f in wikidata_properties if f[2]]
     conversion_date_dict = {}
     for property in date_properties:
-        print("---", property[0])
+        print("  >>", property[0])
         q = build_dated_query(property)
         result = restructure_json(fetch_wikidata(q))
         # Structure property as a dict
         conversion_date_dict[property[0]] = restructure_dated_property(result, property[0])
 
     ## Gather all data
-    print("-- Gathering data")
+    print(">> Gathering data")
     for key, dictval in {**conversion_list_dict, **conversion_date_dict}.items():
-        print(" dict ", key, " = ", dictval)
         df[key] = df["codeiso2"].apply(lambda x: dictval.get(x, ""))
 
     # Export brut data
@@ -227,4 +226,5 @@ if __name__ == "__main__":
     with open("countries_wikidata_lua.txt", "w") as text_file:
         text_file.write(wikistring)
 
+    print("\n\n")
     print(wikistring)
