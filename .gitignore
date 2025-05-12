@@ -1,0 +1,3 @@
+__pycache__
+osm_power_grid_analysis_and_map/data/*
+osm_power_grid_analysis_and_map/export/*
