@@ -5,7 +5,7 @@ These data can thus be used largely in the wiki.
 
 Update of data requires to run this script and updating wiki module page with the script's output (console or txt file).
 
-Script by ben10dynartio under WTFPL Licence for parts that are not covered by dependancy licences,
+Script by ben10dynartio under WTFPL Licence where not covered by the dependancy licences.
 """
 
 import requests
