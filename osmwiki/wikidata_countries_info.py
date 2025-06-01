@@ -23,8 +23,9 @@ PATH_BRUT_DATA = "wikidata_countries_info_brut.csv"
 PATH_FORMAT_DATA = "wikidata_countries_info_formatted.csv"
 PATH_LUA_DATA = "wikidata_countries_info_lua.txt"
 
-wikidata_properties = [ # List of properties that will be requested from Wikidata
-    # (property name, wikidata property id, has_date, datatype, get_label)
+# List of properties that will be requested from Wikidata
+# (property name, wikidata property id, has_date, datatype, get_label)
+wikidata_properties = [
     ("codeiso2", 297, False, str, False),
     ("continent", 30, False, list, True),
     ("area_km2", 2046, False, float, False),
@@ -111,11 +112,23 @@ def build_dated_query(property):
     return SPARQL_QUERY
 
 
-def restructure_dated_property(rows, nameattribute):
+def restructure_dated_property(rows, attribute_name):
     df = pd.DataFrame(rows).fillna("")
-    df = df.sort_values("date_" + nameattribute, ascending = False)
+    df = df.sort_values("date_" + attribute_name, ascending = False)
     df = df.groupby("country").first().reset_index()
-    return {r["country"]:r[nameattribute] for r in df.to_dict(orient='records')}
+    return {r["country"]:r[attribute_name] for r in df.to_dict(orient='records')}
+
+
+def get_wiki_image_url(image_name):
+    """Request wiki to get url image from image name"""
+    image_name = image_name.replace(" ", "_").replace("+", "%2B")
+    wikiurl = f"https://en.wikipedia.org/w/api.php?action=query&titles=File:{image_name}&prop=imageinfo&iiprop=url&format=json"
+    r = requests.get(wikiurl)
+    r.raise_for_status()
+    r = r.json()
+    for key, val in r["query"]["pages"].items():
+        return val["imageinfo"][0]["url"]
+    return None
 
 
 def process_lua_data(df, selected_property):
@@ -173,7 +186,6 @@ if __name__ == "__main__":
     dfl["languages"] = dfl["languages"].groupby(["country"])['languages'].apply(', '.join).reset_index()
 
     # Manage locator map
-    dfl["locator_map"]["locator_map"] = dfl["locator_map"]["locator_map"].str.replace("http://commons.wikimedia.org/wiki/Special:FilePath/", "").map(unquote)
     dfl["locator_map"]["locator_map_score"] = 99
     locator_map_score_dict = {
         "orthographic":2,
@@ -184,6 +196,7 @@ if __name__ == "__main__":
         dfl["locator_map"]["locator_map_score"] = dfl["locator_map"]["locator_map"].apply(lambda x: locator_map_score_dict.get(x, 99))
     dfl["locator_map"] = dfl["locator_map"].sort_values("locator_map_score")
     dfl["locator_map"] = dfl["locator_map"].groupby(["country"]).first().reset_index()
+
 
     # Structure property as a dict
     conversion_list_dict = {}
@@ -225,7 +238,12 @@ if __name__ == "__main__":
 
     df["gdp_bd"] = df["gdp_bd"].apply(lambda x: "{:.1f}".format(float(x)/1000000000) if x else "")
 
+    df["flag_image_url"] = df["flag_image"]
     df["flag_image"] = df["flag_image"].str.replace(
+        "http://commons.wikimedia.org/wiki/Special:FilePath/", "").map(unquote)
+
+    df["locator_map_url"] = df["locator_map"]
+    df["locator_map"] = df["locator_map"].str.replace(
         "http://commons.wikimedia.org/wiki/Special:FilePath/", "").map(unquote)
 
     df["wikipedia"] = df["wikipedia"].str.replace("https://en.wikipedia.org/wiki/", "").map(unquote)

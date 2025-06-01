@@ -1,10 +1,11 @@
-"""This script requests OpenInfraMap API on certains properties. The collected data are structured
+"""
+This script requests OpenInfraMap API on certains properties. The collected data are structured
 to feed the following OpenStreetMap Wiki Page : https://wiki.openstreetmap.org/wiki/Module:OpeninframapCountryInfo
 These data can thus be used largely in the wiki.
 
 Update of data requires to run this script and updating wiki module page with the script's output (console or txt file).
 
-Script by ben10dynartio shared under WTFPL licence.
+Script by ben10dynartio under WTFPL Licence where not covered by the dependancy licences.
 """
 
 import requests
@@ -13,24 +14,27 @@ import numpy as np
 from urllib.parse import unquote
 from datetime import datetime
 
+
+####### SCRIPT CONFIGURATION ##################################################
 # URL de l'endpoint OpenInfraMap
 ENDPOINT_URL = "https://openinframap.org/stats/country/"
 
 # list of iso code of countries
 countrylist = ["AF", "AL", "DZ", "AD", "AO", "AG", "AR", "AM", "AU", "AT", "AZ", "BH", "BD", "BB", "BY", "BE", "BZ",
                "BJ", "BT", "BO", "BA", "BW", "BR", "BN", "BG", "BF", "BI", "KH", "CM", "CA", "CV", "CF", "TD", "CL",
-               "CO", "KM", "CR", "HR", "CU", "CY", "CZ", "CD", "DJ", "DM", "DO", "EC", "EG", "SV", "GQ", "ER", "EE",
-               "SZ", "ET", "FM", "FJ", "FI", "FR", "GA", "GE", "DE", "GH", "GR", "GD", "GT", "GN", "GW", "GY", "HT",
-               "HN", "HU", "IS", "IN", "ID", "IR", "IQ", "IE", "IL", "IT", "CI", "JM", "JP", "JO", "KZ", "KE", "NL",
-               "KI", "KW", "KG", "LA", "LV", "LB", "LS", "LR", "LY", "LI", "LT", "LU", "MG", "MW", "MY", "MV", "ML",
-               "MT", "MH", "MR", "MU", "MX", "MD", "MC", "MN", "ME", "MA", "MZ", "MM", "NA", "NR", "NP", "NZ", "NI",
-               "NE", "NG", "KP", "MK", "NO", "OM", "PK", "PW", "PA", "PG", "PY", "CN", "PE", "PH", "PL", "PT", "QA",
-               "CG", "RO", "RU", "RW", "KN", "LC", "VC", "WS", "SM", "SA", "SN", "RS", "SC", "SL", "SG", "SK", "SI",
-               "SB", "SO", "ZA", "KR", "SS", "ES", "LK", "PS", "SD", "SR", "SE", "CH", "SY", "ST", "TW", "TJ", "TZ",
-               "TH", "BS", "GM", "TL", "TG", "TO", "TT", "TN", "TR", "TM", "TV", "UG", "UA", "AE", "GB", "US", "UY",
-               "UZ", "VU", "VA", "VE", "VN", "YE", "ZM", "ZW"]
+               "CO", "KM", "CR", "HR", "CU", "CY", "CZ", "CD", "DK", "DJ", "DM", "DO", "EC", "EG", "SV", "GQ", "ER",
+               "EE", "SZ", "ET", "FM", "FJ", "FI", "FR", "GA", "GE", "DE", "GH", "GR", "GD", "GT", "GN", "GW", "GY",
+               "HT", "HN", "HU", "IS", "IN", "ID", "IR", "IQ", "IE", "IL", "IT", "CI", "JM", "JP", "JO", "KZ", "KE",
+               "NL", "KI", "KW", "KG", "LA", "LV", "LB", "LS", "LR", "LY", "LI", "LT", "LU", "MG", "MW", "MY", "MV",
+               "ML", "MT", "MH", "MR", "MU", "MX", "MD", "MC", "MN", "ME", "MA", "MZ", "MM", "NA", "NR", "NP", "NZ",
+               "NI", "NE", "NG", "KP", "MK", "NO", "OM", "PK", "PW", "PA", "PG", "PY", "CN", "PE", "PH", "PL", "PT",
+               "QA", "CG", "RO", "RU", "RW", "KN", "LC", "VC", "WS", "SM", "SA", "SN", "RS", "SC", "SL", "SG", "SK",
+               "SI", "SB", "SO", "ZA", "KR", "SS", "ES", "LK", "PS", "SD", "SR", "SE", "CH", "SY", "ST", "TW", "TJ",
+               "TZ", "TH", "BS", "GM", "TL", "TG", "TO", "TT", "TN", "TR", "TM", "TV", "UG", "UA", "AE", "GB", "US",
+               "UY", "UZ", "VU", "VA", "VE", "VN", "YE", "ZM", "ZW"]
 
 
+####### FUNCTION DEFINITION ###################################################
 def fetch_endpoint(countrycode):
     """ Fetch OpenInfraMap on a country """
     url = ENDPOINT_URL + countrycode + ".json"
@@ -115,12 +119,14 @@ def format_as_lua_data(result_dict, voltage_range_dict):
     return mystr
 
 
+####### MAIN SCRIPT ###########################################################
 if __name__ == '__main__':
     voltage_range_dict = build_voltage_range_dict()
     result_dict = {}
-
-    for countrycode in countrylist:
-        print("+", end="")
+    df_data = []
+    print(">> Requesting countries")
+    for i, countrycode in enumerate(countrylist):
+        print(countrycode, " ", end="")
         result_dict[countrycode] = {}
         jsonresult = fetch_endpoint(countrycode)
         result_dict[countrycode]["json"] = jsonresult
@@ -130,11 +136,15 @@ if __name__ == '__main__':
             build_country_power_line_total_length(jsonresult))
         result_dict[countrycode]["power_plant_count"] = get_country_power_plant_count(jsonresult)
         result_dict[countrycode]["power_plant_output_mw"] = get_country_power_plant_output_mw(jsonresult)
+        df_data.append({"codeiso2":countrycode, **{key:val for key, val in result_dict[countrycode].items() if key != "json"}})
+        if (i+1)%25 == 0:
+            print()
+
+    # Build csv file
+    pd.DataFrame(df_data).to_csv("openinframap_countries_info_brut.csv", index=False)
 
     # Build Lua Structure for wiki module and export it
     wikistring = format_as_lua_data(result_dict, voltage_range_dict)
-    with open("countries_openinframap_lua.txt", "w") as text_file:
+    with open("openinframap_countries_info_lua.txt", "w") as text_file:
         text_file.write(wikistring)
-
-    print()
-    print(wikistring)
+    print("\n\n", wikistring)
